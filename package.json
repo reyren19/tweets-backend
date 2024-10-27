@@ -1,0 +1,16 @@
+{
+  "name": "backend-twitter-project",
+  "version": "1.0.0",
+  "description": "a thorough backend project for practice",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "javascript",
+    "nodejs",
+    "mongodb"
+  ],
+  "author": "raunak raj",
+  "license": "ISC"
+}
