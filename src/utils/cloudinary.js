@@ -1,5 +1,5 @@
 import { v2 as cloudinary } from 'cloudinary';
-import { ApiError } from './ApiError';
+import { ApiError } from './ApiError.js';
 import fs from "fs";
 
 cloudinary.config({
@@ -20,6 +20,7 @@ const uploadFileToCloudinary = async function (localfilepath) {
         });
 
         console.log(`File uploaded successfully at ${uploadResult.url}`);
+        fs.unlinkSync(localfilepath)
         return uploadResult;
     } catch (error) {
         // Remove the file from local storage to prevent inconsistencies

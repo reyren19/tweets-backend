@@ -23,7 +23,7 @@ const registerUser = asyncHandler(async (req,res)=>{
         throw new ApiError(400, "All fields are required!");
     }
 
-    const existingUser = User.findOne({
+    const existingUser = await User.findOne({
         $or:[{username}, {email}]
     })
 
@@ -32,8 +32,8 @@ const registerUser = asyncHandler(async (req,res)=>{
     }
 
     // multer provides us with a req.files method that allows to check for files
-    const avatarLocalFilePath = req.files.avatar[0].url;
-    const coverImageLocalFilePath = req.files.coverImage[0].url;
+    const avatarLocalFilePath = req.files.avatar[0].path;
+    const coverImageLocalFilePath = req.files?.coverImage[0].path;
 
     // checking if avatar is successfully uploaded
     if(!avatarLocalFilePath){
@@ -41,15 +41,15 @@ const registerUser = asyncHandler(async (req,res)=>{
     }
 
     // uploading to cloudinary
-    const avatar = uploadFileToCloudinary(avatarLocalFilePath);
-    const coverImage = uploadFileToCloudinary(coverImageLocalFilePath);
+    const avatar = await uploadFileToCloudinary(avatarLocalFilePath);
+    const coverImage = await uploadFileToCloudinary(coverImageLocalFilePath);
 
     // checking again if avatar has been uploaded to cloudinary successfully
     if(!avatar){
-        throw new ApiError(400, "Avatar is required");
+        throw new ApiError(400, "Avatar is required in cloudinary!");
     }
 
-    const user = User.create({
+    const user = await User.create({
         fullName,
         email,
         username: username.toLowerCase(),
