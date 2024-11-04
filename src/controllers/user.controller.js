@@ -3,6 +3,23 @@ import {ApiError} from '../utils/ApiError.js'
 import {User} from '../models/user.models.js'
 import {uploadFileToCloudinary} from '../utils/cloudinary.js'
 import { ApiResponse } from "../utils/ApiResponse.js";
+
+const generateRefreshAndAccessTokens = async (userId) => {
+    try{
+        const user = await User.findById(userId);
+        // no need to handle !user error here as its already being handled in login route
+        const refreshToken = user.generateRefreshToken();
+        const accessToken = user.generateAccessToken();
+        user.refreshToken = refreshToken;
+        await user.save({validateBeforeSave: false});
+        return {refreshToken, accessToken};
+    }
+    catch (e) {
+        throw new ApiError(500, "Could not generate tokens", e.errors || []);
+    }
+}
+
+
 const registerUser = asyncHandler(async (req,res)=>{
     /* 
         1. Get the email, username and password and other fields required from the user/frontend
@@ -14,8 +31,8 @@ const registerUser = asyncHandler(async (req,res)=>{
         7. Remove password and refresh token from response
         8. Send Response to frontend    
     */
+
     const {email, fullName, username, password} = req.body;
-    console.log("email", email);
 
     // validation
     // NOTE-> If only one param is present we can write arrow functions like this without an implicit return
@@ -71,7 +88,71 @@ const registerUser = asyncHandler(async (req,res)=>{
 })
 
 const loginUser = asyncHandler(async(req,res)=>{
-    res.status(200).json({message: "ok"});
+    /*
+    STEPS FOR LOGIN
+    * Get username/email and password from the req.body
+    * Check if user exists
+    * Check if password correct
+    * Generate refresh and access tokens
+    * send cookie
+    * Send response
+     */
+
+    const {username, email, password} = req.body();
+    if(!username || !email){
+        throw new ApiError(400, "Email aur Username is required!")
+    }
+    const existingUser = await User.findOne({
+        $or: [{email}, {username}]
+    })
+    if(!existingUser){
+        throw new ApiError(404, "User not found!");
+    }
+    const isValidPassword = await existingUser.isValidPassword(password);
+
+    if(!isValidPassword){
+        throw new ApiError(401, "Password is invalid!")
+    }
+
+    const { accessToken, refreshToken } = await generateRefreshAndAccessTokens(existingUser._id);
+
+    const loggedInUser = await User.findById(existingUser._id).select("-password -refreshToken");
+
+    // use secure to make sure that user cannot modify cookie from frontend
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res.status(200).cookie("accessToken", accessToken, options).cookie("refreshToken", refreshToken, options).json(
+      new ApiResponse(200,
+        {
+            // we are sending tokens here too because its good practice as many SPAs store them in the frontend localstorage/db
+            user: loggedInUser, refreshToken, accessToken
+        },
+        "User logged in successfully!"
+      )
+    )
 })
 
-export {registerUser,loginUser}
+const logoutUser = asyncHandler(async (req,res)=>{
+    await User.findByIdAndUpdate(req.user._id,
+      {
+          $set: {refreshToken: undefined}
+      },
+      {
+          new: true
+      }
+      )
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res.status(200).clearCookie("accessToken", options).clearCookie("refreshToken", options).json(
+      new ApiResponse(201, {}, "User logged out successfully!")
+    );
+
+})
+
+export {registerUser,loginUser,logoutUser}

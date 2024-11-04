@@ -2,7 +2,6 @@ import connectDB from "./db/index.js";
 import app from "./app.js";
 import dotenv from 'dotenv';
 dotenv.config();
-console.log(process.env)
 connectDB()
 .then(()=>{
 
