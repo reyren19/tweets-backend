@@ -1,5 +1,5 @@
-import express from 'express'
-import cors from 'cors'
+import express from 'express';
+import cors from 'cors';
 import cookieParser from 'cookie-parser';
 const app = express();
 
@@ -28,4 +28,3 @@ import userRouter from './routes/user.routes.js'
 // Router declaration
 // we need to use middleware for router declaration, this line will direct all control of /api/v1/users to userRouter and from there it will take control
 app.use("/api/v1/users", userRouter);
-export default app
